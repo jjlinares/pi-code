@@ -63,7 +63,7 @@
     },
     "keybindings": [
       {
-        "command": "pi-code.open",
+        "command": "pi-code.newSession",
         "key": "ctrl+alt+p",
         "when": "isLinux"
       }

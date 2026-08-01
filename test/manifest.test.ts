@@ -37,9 +37,9 @@ describe("extension manifest", () => {
     expect(manifest.contributes.configuration.properties["pi-code.path"]?.scope).toBe("machine");
   });
 
-  it("binds Open to Ctrl+Alt+P on Linux", () => {
+  it("binds New Session to Ctrl+Alt+P on Linux", () => {
     expect(manifest.contributes.keybindings).toEqual([
-      { command: "pi-code.open", key: "ctrl+alt+p", when: "isLinux" },
+      { command: "pi-code.newSession", key: "ctrl+alt+p", when: "isLinux" },
     ]);
   });
 

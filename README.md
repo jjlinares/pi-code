@@ -18,8 +18,8 @@ npm install --global --ignore-scripts @earendil-works/pi-coding-agent
 
 | Command | Key | Behavior |
 | --- | --- | --- |
-| `Pi Code: Open` | `Ctrl+Alt+P` | Focus the active or most recently used Pi terminal, or create one. |
-| `Pi Code: New Session` | — | Create an independent Pi session. |
+| `Pi Code: Open` | — | Focus the active or most recently used Pi terminal, or create one. |
+| `Pi Code: New Session` | `Ctrl+Alt+P` | Create an independent Pi session. |
 | `Pi Code: Add Selection to Composer` | Editor context menu | Append a workspace-relative `path:start-end` reference on a new composer line without submitting it. |
 
 Selection references require a saved, file-backed document inside a workspace folder. Pi Code never copies selected source text or saves documents automatically.
