@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 
 const TERMINAL_NAME = "Pi Code";
+const COMPOSER_NEWLINE = "\u001b[13;2u";
 
 type TerminalRecord = {
   cwd: string;
@@ -13,11 +14,15 @@ export class PiTerminals implements vscode.Disposable {
   readonly #resolveExecutable: () => Promise<string | undefined>;
   #creationQueue: Promise<void> = Promise.resolve();
   #clock = 0;
+  #terminalColumn: vscode.ViewColumn | undefined;
 
   constructor(resolveExecutable: () => Promise<string | undefined>) {
     this.#resolveExecutable = resolveExecutable;
     this.#disposables = [
-      vscode.window.onDidCloseTerminal((terminal) => this.#terminals.delete(terminal)),
+      vscode.window.onDidCloseTerminal((terminal) => {
+        this.#terminals.delete(terminal);
+        if (this.#terminals.size === 0) this.#terminalColumn = undefined;
+      }),
       vscode.window.onDidChangeActiveTerminal((terminal) => {
         if (terminal) this.#touch(terminal);
       }),
@@ -59,7 +64,7 @@ export class PiTerminals implements vscode.Disposable {
     }
     if (!terminal) return;
 
-    terminal.sendText(` ${text} `, false);
+    terminal.sendText(`${COMPOSER_NEWLINE}${text} `, false);
     this.#focus(terminal);
   }
 
@@ -73,13 +78,10 @@ export class PiTerminals implements vscode.Disposable {
     if (!executable) return undefined;
 
     const anchor = this.#mostRecent();
-    let viewColumn: vscode.ViewColumn;
-    if (anchor) {
-      this.#focus(anchor);
-      viewColumn = vscode.ViewColumn.Active;
-    } else {
-      viewColumn = this.#rightmostNewColumn();
-    }
+    if (anchor) this.#focus(anchor);
+
+    const viewColumn = this.#terminalColumn ?? this.#rightmostNewColumn();
+    this.#terminalColumn = viewColumn;
 
     const terminal = vscode.window.createTerminal({
       name: TERMINAL_NAME,

@@ -151,7 +151,7 @@ describe("PiTerminals", () => {
     terminals.dispose();
   });
 
-  it("creates the first terminal at the right and later sessions in its active group", async () => {
+  it("creates the first terminal at the right and explicitly reuses its locked group", async () => {
     mock.groups.push({ viewColumn: 1 }, { viewColumn: 3 });
     const terminals = new PiTerminals(async () => "/usr/bin/pi");
 
@@ -160,7 +160,7 @@ describe("PiTerminals", () => {
 
     expect(mock.options.map((options) => options.location)).toEqual([
       { viewColumn: 4 },
-      { viewColumn: -1 },
+      { viewColumn: 4 },
     ]);
     expect(mock.options.every((options) => options.env === undefined)).toBe(true);
     terminals.dispose();
@@ -173,7 +173,7 @@ describe("PiTerminals", () => {
 
     await terminals.appendToComposer("src/app.ts:4-8", vscode.Uri.file("/workspace/one"));
 
-    expect(mock.terminals[0]?.sendText).toHaveBeenCalledWith(" src/app.ts:4-8 ", false);
+    expect(mock.terminals[0]?.sendText).toHaveBeenCalledWith("\u001b[13;2usrc/app.ts:4-8 ", false);
     expect(mock.terminals[1]?.sendText).not.toHaveBeenCalled();
     expect(mock.events.at(-1)).toBe("show:0");
     terminals.dispose();
@@ -187,7 +187,7 @@ describe("PiTerminals", () => {
 
     expect(mock.options).toHaveLength(2);
     expect(mock.options[1]?.cwd).toEqual(vscode.Uri.file("/workspace/two"));
-    expect(mock.terminals[1]?.sendText).toHaveBeenCalledWith(" src/app.ts:4 ", false);
+    expect(mock.terminals[1]?.sendText).toHaveBeenCalledWith("\u001b[13;2usrc/app.ts:4 ", false);
     terminals.dispose();
   });
 
