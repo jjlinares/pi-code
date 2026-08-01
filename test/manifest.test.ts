@@ -8,7 +8,10 @@ const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.
     commands: Array<{ command: string; title: string }>;
     configuration: { properties: Record<string, { scope: string }> };
     keybindings: Array<{ command: string; key: string; when: string }>;
-    menus: { "editor/context": Array<{ when: string }> };
+    menus: {
+      "editor/context": Array<{ when: string }>;
+      "terminal/context": Array<{ command: string; group: string; when: string }>;
+    };
   };
 };
 
@@ -24,6 +27,10 @@ describe("extension manifest", () => {
       {
         command: "pi-code.addSelectionToComposer",
         title: "Pi Code: Add Selection to Composer",
+      },
+      {
+        command: "pi-code.addTerminalSelectionToComposer",
+        title: "Pi Code: Add Terminal Selection to Composer",
       },
     ]);
   });
@@ -43,7 +50,17 @@ describe("extension manifest", () => {
     ]);
   });
 
-  it("hides selection insertion for dirty editors", () => {
+  it("hides editor selection insertion for dirty editors", () => {
     expect(manifest.contributes.menus["editor/context"][0]?.when).toContain("!activeEditorIsDirty");
+  });
+
+  it("shows terminal selection insertion only when terminal text is selected", () => {
+    expect(manifest.contributes.menus["terminal/context"]).toEqual([
+      {
+        command: "pi-code.addTerminalSelectionToComposer",
+        group: "navigation@-1000",
+        when: "terminalTextSelected",
+      },
+    ]);
   });
 });

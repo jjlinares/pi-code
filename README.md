@@ -21,8 +21,9 @@ npm install --global --ignore-scripts @earendil-works/pi-coding-agent
 | `Pi Code: Open` | — | Focus the active or most recently used Pi terminal, or create one. |
 | `Pi Code: New Session` | `Ctrl+Alt+P` | Create an independent Pi session. |
 | `Pi Code: Add Selection to Composer` | Editor context menu | Append a workspace-relative `path:start-end` reference on a new composer line without submitting it. |
+| `Pi Code: Add Terminal Selection to Composer` | Terminal context menu | Paste selected terminal output as `<quoted_context>` on a new composer line without submitting it. |
 
-Selection references require a saved, file-backed document inside a workspace folder. Pi Code never copies selected source text or saves documents automatically.
+Editor selection references require a saved, file-backed document inside a workspace folder. Pi Code never copies selected source text or saves documents automatically. Terminal selections temporarily pass through the system clipboard because VS Code exposes no terminal-selection API; the prior clipboard text is restored afterward.
 
 ## Terminal behavior
 
@@ -31,6 +32,7 @@ Selection references require a saved, file-backed document inside a workspace fo
 - The extension makes a best-effort attempt to lock the Pi editor group.
 - New terminal cwd selection: active file's workspace, first workspace folder, then the user's home directory.
 - Composer references target the active or most recent Pi terminal for the selected file's workspace. If none exists, Pi Code creates one.
+- Terminal output selected inside an owned Pi terminal returns to that terminal. Output from other terminals targets the workspace-matched most recent Pi terminal.
 - Terminals are transient. The extension does not restore or mutate Pi sessions; Pi owns session persistence.
 
 ## Configuration
@@ -55,4 +57,4 @@ Press `F5` in VS Code to launch an Extension Development Host.
 
 ## Deliberate exclusions
 
-No webviews, startup activation, status bar, HTTP server, Pi extension injection, editor bridge tools, VS Code Chat integration, package browser, installer/upgrader, session restoration, or clipboard-based terminal selection handling.
+No webviews, startup activation, status bar, HTTP server, Pi extension injection, editor bridge tools, VS Code Chat integration, package browser, installer/upgrader, or session restoration.

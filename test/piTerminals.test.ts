@@ -14,7 +14,11 @@ const mock = vi.hoisted(() => ({
   closed: [] as Array<(terminal: unknown) => void>,
   activated: [] as Array<(terminal: unknown) => void>,
   events: [] as string[],
+  clipboard: "",
+  clipboardWrites: [] as string[],
+  terminalSelection: undefined as string | undefined,
   lockFails: false,
+  pasteFails: false,
 }));
 
 vi.mock("vscode", () => {
@@ -63,10 +67,31 @@ vi.mock("vscode", () => {
       Nine: 9,
     },
     commands: {
-      executeCommand: vi.fn(async () => {
-        mock.events.push("lock");
-        if (mock.lockFails) throw new Error("lock unavailable");
+      executeCommand: vi.fn(async (command: string) => {
+        if (command === "workbench.action.lockEditorGroup") {
+          mock.events.push("lock");
+          if (mock.lockFails) throw new Error("lock unavailable");
+          return;
+        }
+        if (command === "workbench.action.terminal.copySelection") {
+          mock.events.push("copy");
+          if (mock.terminalSelection !== undefined) mock.clipboard = mock.terminalSelection;
+          return;
+        }
+        if (command === "workbench.action.terminal.paste") {
+          mock.events.push("paste");
+          if (mock.pasteFails) throw new Error("paste unavailable");
+        }
       }),
+    },
+    env: {
+      clipboard: {
+        readText: vi.fn(async () => mock.clipboard),
+        writeText: vi.fn(async (text: string) => {
+          mock.clipboard = text;
+          mock.clipboardWrites.push(text);
+        }),
+      },
     },
     window: {
       terminals: mock.terminals,
@@ -115,7 +140,11 @@ beforeEach(() => {
   mock.closed.length = 0;
   mock.activated.length = 0;
   mock.events.length = 0;
+  mock.clipboard = "";
+  mock.clipboardWrites.length = 0;
+  mock.terminalSelection = undefined;
   mock.lockFails = false;
+  mock.pasteFails = false;
 });
 
 describe("PiTerminals", () => {
@@ -188,6 +217,84 @@ describe("PiTerminals", () => {
     expect(mock.options).toHaveLength(2);
     expect(mock.options[1]?.cwd).toEqual(vscode.Uri.file("/workspace/two"));
     expect(mock.terminals[1]?.sendText).toHaveBeenCalledWith("\u001b[13;2usrc/app.ts:4 ", false);
+    terminals.dispose();
+  });
+
+  it("pastes selected output into its owned source terminal and restores the clipboard", async () => {
+    const terminals = new PiTerminals(async () => "/usr/bin/pi");
+    const source = await terminals.newSession(vscode.Uri.file("/workspace"));
+    if (!source) throw new Error("terminal was not created");
+    mock.clipboard = "original clipboard";
+    mock.terminalSelection = "first line\nsecond line\n";
+
+    const result = await terminals.appendTerminalSelectionToComposer(
+      source,
+      vscode.Uri.file("/workspace"),
+    );
+
+    expect(result).toBe("inserted");
+    expect(source.sendText).toHaveBeenCalledWith("\u001b[13;2u", false);
+    expect(mock.clipboardWrites).toContain(
+      "<quoted_context>\nfirst line\nsecond line\n</quoted_context>\n",
+    );
+    expect(mock.events.at(-1)).toBe("paste");
+    expect(mock.clipboard).toBe("original clipboard");
+    terminals.dispose();
+  });
+
+  it("targets the workspace-matched Pi terminal when output comes from another terminal", async () => {
+    const terminals = new PiTerminals(async () => "/usr/bin/pi");
+    const target = await terminals.newSession(vscode.Uri.file("/workspace"));
+    if (!target) throw new Error("terminal was not created");
+    const source = {
+      exitStatus: undefined,
+      show: vi.fn(() => {
+        mock.activeTerminal = source;
+      }),
+    } as unknown as vscode.Terminal;
+    mock.activeTerminal = source;
+    mock.terminalSelection = "build output";
+
+    const result = await terminals.appendTerminalSelectionToComposer(
+      source,
+      vscode.Uri.file("/workspace"),
+    );
+
+    expect(result).toBe("inserted");
+    expect(target.sendText).toHaveBeenCalledWith("\u001b[13;2u", false);
+    expect(mock.options).toHaveLength(1);
+    terminals.dispose();
+  });
+
+  it("rejects a missing terminal selection without pasting stale clipboard text", async () => {
+    const terminals = new PiTerminals(async () => "/usr/bin/pi");
+    const source = await terminals.newSession(vscode.Uri.file("/workspace"));
+    if (!source) throw new Error("terminal was not created");
+    mock.clipboard = "stale clipboard";
+
+    const result = await terminals.appendTerminalSelectionToComposer(
+      source,
+      vscode.Uri.file("/workspace"),
+    );
+
+    expect(result).toBe("noSelection");
+    expect(mock.events).not.toContain("paste");
+    expect(mock.clipboard).toBe("stale clipboard");
+    terminals.dispose();
+  });
+
+  it("restores the clipboard when terminal paste fails", async () => {
+    const terminals = new PiTerminals(async () => "/usr/bin/pi");
+    const source = await terminals.newSession(vscode.Uri.file("/workspace"));
+    if (!source) throw new Error("terminal was not created");
+    mock.clipboard = "original clipboard";
+    mock.terminalSelection = "output";
+    mock.pasteFails = true;
+
+    await expect(
+      terminals.appendTerminalSelectionToComposer(source, vscode.Uri.file("/workspace")),
+    ).rejects.toThrow("paste unavailable");
+    expect(mock.clipboard).toBe("original clipboard");
     terminals.dispose();
   });
 

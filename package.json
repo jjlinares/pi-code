@@ -39,6 +39,10 @@
       {
         "command": "pi-code.addSelectionToComposer",
         "title": "Pi Code: Add Selection to Composer"
+      },
+      {
+        "command": "pi-code.addTerminalSelectionToComposer",
+        "title": "Pi Code: Add Terminal Selection to Composer"
       }
     ],
     "menus": {
@@ -47,6 +51,13 @@
           "command": "pi-code.addSelectionToComposer",
           "group": "navigation@-1000",
           "when": "resourceScheme == file && editorHasSelection && !activeEditorIsDirty"
+        }
+      ],
+      "terminal/context": [
+        {
+          "command": "pi-code.addTerminalSelectionToComposer",
+          "group": "navigation@-1000",
+          "when": "terminalTextSelected"
         }
       ]
     },

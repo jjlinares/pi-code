@@ -11,6 +11,8 @@ Linux-only VS Code extension that runs Pi's native TUI directly in a terminal ed
 - `Open` targets the active owned terminal, then global MRU, then creates one.
 - Composer references target the active/MRU terminal whose cwd is the file's workspace root.
 - References are plain workspace-relative `path:start-end` text and are never submitted automatically.
+- Terminal selections use temporary clipboard copy/paste, `<quoted_context>` wrapping, and `finally`-based clipboard restoration.
+- Owned source terminals receive their own selected output; foreign sources target a workspace-matched Pi terminal.
 - Reject dirty documents and files outside workspace folders; never save automatically.
 - Pi installation, updates, and session restoration remain outside this extension.
 
@@ -20,6 +22,7 @@ Linux-only VS Code extension that runs Pi's native TUI directly in a terminal ed
 - `src/piTerminals.ts` — ownership, MRU targeting, launch, grouping, locking, and insertion.
 - `src/piExecutable.ts` — pure Linux executable resolution.
 - `src/selectionReference.ts` — pure inclusive line-range formatting.
+- `src/terminalSelection.ts` — pure terminal-output context formatting.
 - `src/workspace.ts` — pure cwd and workspace-relative path policy.
 
 ## Verification

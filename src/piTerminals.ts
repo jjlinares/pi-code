@@ -1,4 +1,6 @@
+import { randomUUID } from "node:crypto";
 import * as vscode from "vscode";
+import { formatTerminalSelectionContext } from "./terminalSelection.js";
 
 const TERMINAL_NAME = "Pi Code";
 const COMPOSER_NEWLINE = "\u001b[13;2u";
@@ -7,6 +9,8 @@ type TerminalRecord = {
   cwd: string;
   lastUsed: number;
 };
+
+export type TerminalSelectionResult = "inserted" | "noSelection" | "unavailable";
 
 export class PiTerminals implements vscode.Disposable {
   readonly #terminals = new Map<vscode.Terminal, TerminalRecord>();
@@ -68,6 +72,37 @@ export class PiTerminals implements vscode.Disposable {
     this.#focus(terminal);
   }
 
+  async appendTerminalSelectionToComposer(
+    sourceTerminal: vscode.Terminal,
+    cwd: vscode.Uri,
+  ): Promise<TerminalSelectionResult> {
+    if (!this.#supportsPlatform()) return "unavailable";
+
+    const selection = await this.#copyTerminalSelection(sourceTerminal);
+    const context = selection ? formatTerminalSelectionContext(selection) : undefined;
+    if (!context) return "noSelection";
+
+    let terminal = this.#isLiveOwned(sourceTerminal) ? sourceTerminal : this.#mostRecent(cwd);
+    if (!terminal) {
+      terminal = await this.#serializeCreation(async () => {
+        return this.#mostRecent(cwd) ?? this.#create(cwd);
+      });
+    }
+    if (!terminal) return "unavailable";
+
+    const previousClipboard = await vscode.env.clipboard.readText();
+    try {
+      await vscode.env.clipboard.writeText(context);
+      this.#focus(terminal);
+      terminal.sendText(COMPOSER_NEWLINE, false);
+      await vscode.commands.executeCommand("workbench.action.terminal.paste");
+      this.#touch(terminal);
+      return "inserted";
+    } finally {
+      await vscode.env.clipboard.writeText(previousClipboard);
+    }
+  }
+
   dispose(): void {
     for (const disposable of this.#disposables) disposable.dispose();
     this.#terminals.clear();
@@ -123,6 +158,24 @@ export class PiTerminals implements vscode.Disposable {
       return undefined;
     }
     return terminal;
+  }
+
+  #isLiveOwned(terminal: vscode.Terminal): boolean {
+    return terminal.exitStatus === undefined && this.#terminals.has(terminal);
+  }
+
+  async #copyTerminalSelection(sourceTerminal: vscode.Terminal): Promise<string | undefined> {
+    const previousClipboard = await vscode.env.clipboard.readText();
+    const sentinel = `pi-code:${randomUUID()}`;
+    try {
+      await vscode.env.clipboard.writeText(sentinel);
+      sourceTerminal.show();
+      await vscode.commands.executeCommand("workbench.action.terminal.copySelection");
+      const selection = await vscode.env.clipboard.readText();
+      return selection === sentinel ? undefined : selection;
+    } finally {
+      await vscode.env.clipboard.writeText(previousClipboard);
+    }
   }
 
   #mostRecent(cwd?: vscode.Uri): vscode.Terminal | undefined {

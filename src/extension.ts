@@ -60,6 +60,25 @@ export function activate(context: vscode.ExtensionContext): void {
 
       await terminals.appendToComposer(reference, workspaceFolder.uri);
     }),
+    vscode.commands.registerCommand("pi-code.addTerminalSelectionToComposer", async () => {
+      const sourceTerminal = vscode.window.activeTerminal;
+      if (!sourceTerminal) {
+        showError("Select terminal text before adding it to Pi.");
+        return;
+      }
+
+      try {
+        const result = await terminals.appendTerminalSelectionToComposer(
+          sourceTerminal,
+          getWorkingDirectory(),
+        );
+        if (result === "noSelection") {
+          showError("Select non-empty terminal text before adding it to Pi.");
+        }
+      } catch (error) {
+        showError(`Failed to add terminal selection: ${toErrorMessage(error)}`);
+      }
+    }),
   );
 }
 
@@ -79,6 +98,10 @@ function getWorkingDirectory(): vscode.Uri {
 
 function showError(message: string): void {
   void vscode.window.showErrorMessage(message);
+}
+
+function toErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 async function resolveExecutable(): Promise<string | undefined> {
