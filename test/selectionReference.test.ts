@@ -10,7 +10,7 @@ describe("formatSelectionReference", () => {
         endLine: 8,
         endCharacter: 12,
       }),
-    ).toBe("@src/extension.ts:8");
+    ).toBe("src/extension.ts:8");
   });
 
   it("formats a multiline selection", () => {
@@ -21,7 +21,7 @@ describe("formatSelectionReference", () => {
         endLine: 12,
         endCharacter: 4,
       }),
-    ).toBe("@src/extension.ts:8-12");
+    ).toBe("src/extension.ts:8-12");
   });
 
   it("excludes an exclusive end line at character zero", () => {
@@ -32,7 +32,7 @@ describe("formatSelectionReference", () => {
         endLine: 13,
         endCharacter: 0,
       }),
-    ).toBe("@src/extension.ts:8-12");
+    ).toBe("src/extension.ts:8-12");
   });
 
   it.each(["src/evil\nfile.ts", "src/evil\rfile.ts", "src/evil\u001bfile.ts"])(

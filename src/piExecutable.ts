@@ -38,7 +38,7 @@ export function resolvePiExecutable(options: PiExecutableOptions = {}): PiExecut
   return {
     ok: false,
     message:
-      "Pi was not found in PATH. Install @earendil-works/pi-coding-agent or configure pi-code.executablePath.",
+      "Pi was not found in PATH. Install @earendil-works/pi-coding-agent or configure pi-code.path.",
   };
 }
 

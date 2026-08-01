@@ -1,34 +1,52 @@
+import { homedir } from "node:os";
 import * as vscode from "vscode";
 import { resolvePiExecutable } from "./piExecutable.js";
 import { PiTerminals } from "./piTerminals.js";
 import { formatSelectionReference } from "./selectionReference.js";
+import { chooseWorkingDirectory, workspaceRelativePath } from "./workspace.js";
 
 export function activate(context: vscode.ExtensionContext): void {
   const terminals = new PiTerminals(resolveExecutable);
-  const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  status.name = "Pi Code";
-  status.text = "$(terminal) Pi Code";
-  status.tooltip = "Open Pi Code";
-  status.command = "pi-code.open";
-  status.show();
 
   context.subscriptions.push(
     terminals,
-    status,
     vscode.commands.registerCommand("pi-code.open", async () => {
-      await terminals.open(getActiveWorkspaceFolder());
+      await terminals.open(getWorkingDirectory());
     }),
-    vscode.commands.registerCommand("pi-code.newTerminal", async () => {
-      await terminals.open(getActiveWorkspaceFolder(), true);
+    vscode.commands.registerCommand("pi-code.newSession", async () => {
+      await terminals.newSession(getWorkingDirectory());
     }),
     vscode.commands.registerCommand("pi-code.addSelectionToComposer", async () => {
       const editor = vscode.window.activeTextEditor;
-      if (!editor || editor.selection.isEmpty || editor.document.uri.scheme !== "file") return;
+      if (!editor) {
+        showError("Open a workspace file and select one or more lines first.");
+        return;
+      }
+      if (editor.document.uri.scheme !== "file") {
+        showError("Pi Code only supports file-backed editors.");
+        return;
+      }
+      if (editor.selection.isEmpty) {
+        showError("Select one or more lines before adding a reference.");
+        return;
+      }
+      if (editor.document.isDirty) {
+        showError("Save the file before adding its selection to Pi.");
+        return;
+      }
 
       const workspaceFolder = vscode.workspace.getWorkspaceFolder(editor.document.uri);
-      const path = workspaceFolder
-        ? vscode.workspace.asRelativePath(editor.document.uri, false)
-        : editor.document.uri.fsPath;
+      if (!workspaceFolder) {
+        showError("Pi Code only supports files inside a workspace folder.");
+        return;
+      }
+
+      const path = workspaceRelativePath(workspaceFolder.uri.fsPath, editor.document.uri.fsPath);
+      if (!path) {
+        showError("Could not derive a workspace-relative path for the selected file.");
+        return;
+      }
+
       const reference = formatSelectionReference({
         path,
         startLine: editor.selection.start.line + 1,
@@ -36,34 +54,41 @@ export function activate(context: vscode.ExtensionContext): void {
         endCharacter: editor.selection.end.character,
       });
       if (!reference) {
-        void vscode.window.showErrorMessage(
-          "Pi Code cannot send file paths containing terminal control characters.",
-        );
+        showError("Pi Code cannot send file paths containing terminal control characters.");
         return;
       }
 
-      await terminals.appendToComposer(reference, workspaceFolder?.uri);
+      await terminals.appendToComposer(reference, workspaceFolder.uri);
     }),
   );
 }
 
-function getActiveWorkspaceFolder(): vscode.Uri | undefined {
-  const editor = vscode.window.activeTextEditor;
-  if (editor) {
-    const folder = vscode.workspace.getWorkspaceFolder(editor.document.uri);
-    if (folder) return folder.uri;
-  }
-  return vscode.workspace.workspaceFolders?.[0]?.uri;
+function getWorkingDirectory(): vscode.Uri {
+  const folders = vscode.workspace.workspaceFolders ?? [];
+  const activeEditor = vscode.window.activeTextEditor;
+  const activeFolder = activeEditor
+    ? vscode.workspace.getWorkspaceFolder(activeEditor.document.uri)
+    : undefined;
+  const path = chooseWorkingDirectory(
+    activeFolder?.uri.fsPath,
+    folders.map((folder) => folder.uri.fsPath),
+    homedir(),
+  );
+  return vscode.Uri.file(path);
+}
+
+function showError(message: string): void {
+  void vscode.window.showErrorMessage(message);
 }
 
 async function resolveExecutable(): Promise<string | undefined> {
-  const configuredPath = vscode.workspace.getConfiguration("pi-code").get<string>("executablePath");
+  const configuredPath = vscode.workspace.getConfiguration("pi-code").get<string>("path");
   const resolution = resolvePiExecutable(configuredPath ? { configuredPath } : {});
   if (resolution.ok) return resolution.path;
 
   const action = await vscode.window.showErrorMessage(resolution.message, "Open Settings");
   if (action === "Open Settings") {
-    await vscode.commands.executeCommand("workbench.action.openSettings", "pi-code.executablePath");
+    await vscode.commands.executeCommand("workbench.action.openSettings", "pi-code.path");
   }
   return undefined;
 }

@@ -17,7 +17,7 @@ export function formatSelectionReference(selection: SelectionReference): string 
       ? String(selection.startLine)
       : `${selection.startLine}-${effectiveEndLine}`;
 
-  return `@${selection.path}:${range}`;
+  return `${selection.path}:${range}`;
 }
 
 function isTerminalControlCharacter(character: string): boolean {

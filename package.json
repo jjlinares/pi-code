@@ -12,11 +12,8 @@
     "Other"
   ],
   "engines": {
-    "vscode": "^1.95.0"
+    "vscode": "^1.130.0"
   },
-  "activationEvents": [
-    "onStartupFinished"
-  ],
   "scripts": {
     "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.cjs --sourcemap",
     "dev": "pnpm build --watch",
@@ -35,8 +32,8 @@
         "icon": "$(terminal)"
       },
       {
-        "command": "pi-code.newTerminal",
-        "title": "Pi Code: New Terminal",
+        "command": "pi-code.newSession",
+        "title": "Pi Code: New Session",
         "icon": "$(terminal-new)"
       },
       {
@@ -49,26 +46,33 @@
         {
           "command": "pi-code.addSelectionToComposer",
           "group": "navigation@-1000",
-          "when": "resourceScheme == file && editorHasSelection"
+          "when": "resourceScheme == file && editorHasSelection && !activeEditorIsDirty"
         }
       ]
     },
     "configuration": {
       "title": "Pi Code",
       "properties": {
-        "pi-code.executablePath": {
+        "pi-code.path": {
           "type": "string",
           "default": "",
-          "scope": "machine-overridable",
+          "scope": "machine",
           "description": "Absolute path to the Pi executable. Leave empty to resolve pi from PATH."
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "command": "pi-code.open",
+        "key": "ctrl+alt+p",
+        "when": "isLinux"
+      }
+    ]
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.6",
     "@types/node": "24.13.3",
-    "@types/vscode": "1.95.0",
+    "@types/vscode": "1.125.0",
     "@vscode/vsce": "3.9.2",
     "esbuild": "0.25.12",
     "typescript": "5.9.3",
