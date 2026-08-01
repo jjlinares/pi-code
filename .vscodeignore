@@ -1,0 +1,11 @@
+.github/**
+.vscode/**
+src/**
+test/**
+.gitignore
+AGENTS.md
+biome.json
+tsconfig.json
+pnpm-lock.yaml
+node_modules/**
+*.vsix
