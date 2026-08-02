@@ -21,9 +21,10 @@ npm install --global --ignore-scripts @earendil-works/pi-coding-agent
 | `Pi Code: Open` | — | Focus the active or most recently used Pi terminal, or create one. |
 | `Pi Code: New Session` | `Ctrl+Alt+P` | Create an independent Pi session. |
 | `Pi Code: Add Selection to Composer` | Editor context menu | Append a workspace-relative `path:start-end` reference on a new composer line without submitting it. |
+| `Pi Code: Add File to Composer` | Explorer context menu | Append a workspace-relative file path on a new composer line without submitting it. |
 | `Pi Code: Add Terminal Selection to Composer` | Terminal context menu | Paste selected terminal output as `<quoted_context>` on a new composer line without submitting it. |
 
-Editor selection references require a saved, file-backed document inside a workspace folder. Pi Code never copies selected source text or saves documents automatically. Terminal selections temporarily pass through the system clipboard because VS Code exposes no terminal-selection API; the prior clipboard text is restored afterward.
+Editor and Explorer references require file-backed resources inside a workspace folder. Explorer folders are rejected. Pi Code never copies selected source text or saves documents automatically. Terminal selections temporarily pass through the system clipboard because VS Code exposes no terminal-selection API; the prior clipboard text is restored afterward.
 
 ## Terminal behavior
 

@@ -5,8 +5,14 @@ export interface SelectionReference {
   endCharacter: number;
 }
 
+export function formatFileReference(path: string): string | undefined {
+  if (!path || [...path].some(isTerminalControlCharacter)) return undefined;
+  return path;
+}
+
 export function formatSelectionReference(selection: SelectionReference): string | undefined {
-  if ([...selection.path].some(isTerminalControlCharacter)) return undefined;
+  const path = formatFileReference(selection.path);
+  if (!path) return undefined;
 
   const effectiveEndLine =
     selection.endCharacter === 0 && selection.endLine > selection.startLine
@@ -17,7 +23,7 @@ export function formatSelectionReference(selection: SelectionReference): string 
       ? String(selection.startLine)
       : `${selection.startLine}-${effectiveEndLine}`;
 
-  return `${selection.path}:${range}`;
+  return `${path}:${range}`;
 }
 
 function isTerminalControlCharacter(character: string): boolean {

@@ -2,7 +2,7 @@ import { homedir } from "node:os";
 import * as vscode from "vscode";
 import { resolvePiExecutable } from "./piExecutable.js";
 import { PiTerminals } from "./piTerminals.js";
-import { formatSelectionReference } from "./selectionReference.js";
+import { formatFileReference, formatSelectionReference } from "./selectionReference.js";
 import { chooseWorkingDirectory, workspaceRelativePath } from "./workspace.js";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -53,6 +53,43 @@ export function activate(context: vscode.ExtensionContext): void {
         endLine: editor.selection.end.line + 1,
         endCharacter: editor.selection.end.character,
       });
+      if (!reference) {
+        showError("Pi Code cannot send file paths containing terminal control characters.");
+        return;
+      }
+
+      await terminals.appendToComposer(reference, workspaceFolder.uri);
+    }),
+    vscode.commands.registerCommand("pi-code.addFileToComposer", async (uri?: vscode.Uri) => {
+      if (uri?.scheme !== "file") {
+        showError("Choose a file from the Explorer before adding it to Pi.");
+        return;
+      }
+
+      try {
+        const stat = await vscode.workspace.fs.stat(uri);
+        if ((stat.type & vscode.FileType.Directory) !== 0) {
+          showError("Choose a file, not a folder, before adding it to Pi.");
+          return;
+        }
+      } catch (error) {
+        showError(`Could not read the selected file: ${toErrorMessage(error)}`);
+        return;
+      }
+
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+      if (!workspaceFolder) {
+        showError("Pi Code only supports files inside a workspace folder.");
+        return;
+      }
+
+      const relativePath = workspaceRelativePath(workspaceFolder.uri.fsPath, uri.fsPath);
+      if (!relativePath) {
+        showError("Could not derive a workspace-relative path for the selected file.");
+        return;
+      }
+
+      const reference = formatFileReference(relativePath);
       if (!reference) {
         showError("Pi Code cannot send file paths containing terminal control characters.");
         return;

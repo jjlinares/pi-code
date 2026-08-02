@@ -10,6 +10,7 @@ const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.
     keybindings: Array<{ command: string; key: string; when: string }>;
     menus: {
       "editor/context": Array<{ when: string }>;
+      "explorer/context": Array<{ command: string; group: string; when: string }>;
       "terminal/context": Array<{ command: string; group: string; when: string }>;
     };
   };
@@ -27,6 +28,10 @@ describe("extension manifest", () => {
       {
         command: "pi-code.addSelectionToComposer",
         title: "Pi Code: Add Selection to Composer",
+      },
+      {
+        command: "pi-code.addFileToComposer",
+        title: "Pi Code: Add File to Composer",
       },
       {
         command: "pi-code.addTerminalSelectionToComposer",
@@ -52,6 +57,16 @@ describe("extension manifest", () => {
 
   it("hides editor selection insertion for dirty editors", () => {
     expect(manifest.contributes.menus["editor/context"][0]?.when).toContain("!activeEditorIsDirty");
+  });
+
+  it("shows file insertion only for Explorer files", () => {
+    expect(manifest.contributes.menus["explorer/context"]).toEqual([
+      {
+        command: "pi-code.addFileToComposer",
+        group: "navigation@-1000",
+        when: "resourceScheme == file && !explorerResourceIsFolder",
+      },
+    ]);
   });
 
   it("shows terminal selection insertion only when terminal text is selected", () => {

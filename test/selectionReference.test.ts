@@ -1,5 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { formatSelectionReference } from "../src/selectionReference.js";
+import { formatFileReference, formatSelectionReference } from "../src/selectionReference.js";
+
+describe("formatFileReference", () => {
+  it("formats a workspace-relative file path", () => {
+    expect(formatFileReference("src/extension.ts")).toBe("src/extension.ts");
+  });
+
+  it.each(["", "src/evil\nfile.ts", "src/evil\rfile.ts", "src/evil\u001bfile.ts"])(
+    "rejects an unsafe path in %j",
+    (path) => {
+      expect(formatFileReference(path)).toBeUndefined();
+    },
+  );
+});
 
 describe("formatSelectionReference", () => {
   it("formats a single-line selection", () => {
