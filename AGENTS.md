@@ -1,13 +1,13 @@
 # Pi Code
 
-Linux-only VS Code extension that runs Pi's native TUI directly in a terminal editor.
+Linux-only VS Code extension that runs Pi's native TUI directly in VS Code's integrated Terminal view.
 
 ## Invariants
 
 - No webviews, startup activation, status bar, chat participant, localhost server, RPC client, or bundled Pi extension.
 - Pi is the terminal process. Do not wrap it in a shell or pseudoterminal.
 - Launch Pi with no arguments and no injected environment variables.
-- All owned Pi terminals occupy one best-effort locked editor group.
+- All owned Pi terminals open in VS Code's shared Terminal view; VS Code controls that view's placement.
 - `Open` targets the active owned terminal, then global MRU, then creates one.
 - Composer references target the active/MRU terminal whose cwd is the file's workspace root.
 - Editor and Explorer references are plain workspace-relative `path:start-end` or `path` text and are never submitted automatically.
@@ -19,7 +19,7 @@ Linux-only VS Code extension that runs Pi's native TUI directly in a terminal ed
 ## Modules
 
 - `src/extension.ts` — thin VS Code activation and command wiring.
-- `src/piTerminals.ts` — ownership, MRU targeting, launch, grouping, locking, and insertion.
+- `src/piTerminals.ts` — ownership, MRU targeting, Terminal-view launch, and insertion.
 - `src/piExecutable.ts` — pure Linux executable resolution.
 - `src/selectionReference.ts` — pure inclusive line-range formatting.
 - `src/terminalSelection.ts` — pure terminal-output context formatting.

@@ -15,17 +15,20 @@ export type TerminalSelectionResult = "inserted" | "noSelection" | "unavailable"
 export class PiTerminals implements vscode.Disposable {
   readonly #terminals = new Map<vscode.Terminal, TerminalRecord>();
   readonly #disposables: vscode.Disposable[];
+  readonly #iconPath: { light: vscode.Uri; dark: vscode.Uri };
   readonly #resolveExecutable: () => Promise<string | undefined>;
   #creationQueue: Promise<void> = Promise.resolve();
   #clock = 0;
-  #terminalColumn: vscode.ViewColumn | undefined;
 
-  constructor(resolveExecutable: () => Promise<string | undefined>) {
+  constructor(extensionUri: vscode.Uri, resolveExecutable: () => Promise<string | undefined>) {
+    this.#iconPath = {
+      light: vscode.Uri.joinPath(extensionUri, "assets", "logo-light.svg"),
+      dark: vscode.Uri.joinPath(extensionUri, "assets", "logo.svg"),
+    };
     this.#resolveExecutable = resolveExecutable;
     this.#disposables = [
       vscode.window.onDidCloseTerminal((terminal) => {
         this.#terminals.delete(terminal);
-        if (this.#terminals.size === 0) this.#terminalColumn = undefined;
       }),
       vscode.window.onDidChangeActiveTerminal((terminal) => {
         if (terminal) this.#touch(terminal);
@@ -112,23 +115,16 @@ export class PiTerminals implements vscode.Disposable {
     const executable = await this.#resolveExecutable();
     if (!executable) return undefined;
 
-    const anchor = this.#mostRecent();
-    if (anchor) this.#focus(anchor);
-
-    const viewColumn = this.#terminalColumn ?? this.#rightmostNewColumn();
-    this.#terminalColumn = viewColumn;
-
     const terminal = vscode.window.createTerminal({
       name: TERMINAL_NAME,
       shellPath: executable,
       cwd,
-      iconPath: new vscode.ThemeIcon("terminal"),
-      location: { viewColumn },
+      iconPath: this.#iconPath,
+      location: vscode.TerminalLocation.Panel,
       isTransient: true,
     });
     this.#track(terminal, cwd.fsPath);
     this.#focus(terminal);
-    await this.#lockActiveGroup();
     return terminal;
   }
 
@@ -187,25 +183,6 @@ export class PiTerminals implements vscode.Disposable {
   #matchesCwd(terminal: vscode.Terminal, cwd: vscode.Uri | undefined): boolean {
     const record = this.#terminals.get(terminal);
     return record !== undefined && (cwd === undefined || record.cwd === cwd.fsPath);
-  }
-
-  #rightmostNewColumn(): vscode.ViewColumn {
-    const columns = vscode.window.tabGroups.all
-      .map((group) => group.viewColumn)
-      .filter((column) => column >= vscode.ViewColumn.One && column <= vscode.ViewColumn.Nine);
-    const rightmost = columns.length > 0 ? Math.max(...columns) : undefined;
-    if (rightmost !== undefined && rightmost < vscode.ViewColumn.Nine) {
-      return (rightmost + 1) as vscode.ViewColumn;
-    }
-    return vscode.ViewColumn.Beside;
-  }
-
-  async #lockActiveGroup(): Promise<void> {
-    try {
-      await vscode.commands.executeCommand("workbench.action.lockEditorGroup");
-    } catch {
-      // VS Code exposes no public locking API. Terminal creation must still succeed.
-    }
   }
 
   #serializeCreation<T>(operation: () => Promise<T>): Promise<T> {

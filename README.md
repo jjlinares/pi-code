@@ -1,6 +1,6 @@
 # Pi Code
 
-Minimal Linux-only VS Code integration for [Pi](https://pi.dev/). Pi Code runs Pi's native terminal UI in an integrated terminal editor. It has no webviews, status item, chat participant, IDE bridge, package manager, or hidden agent process.
+Minimal Linux-only VS Code integration for [Pi](https://pi.dev/). Pi Code runs Pi's native terminal UI in VS Code's integrated Terminal view. It has no webviews, status item, chat participant, IDE bridge, package manager, or hidden agent process.
 
 ## Requirements
 
@@ -29,8 +29,7 @@ Editor and Explorer references require file-backed resources inside a workspace 
 ## Terminal behavior
 
 - Pi runs directly as the terminal process with no arguments or injected environment variables.
-- The first Pi terminal opens in a new rightmost editor group. Later sessions reuse that group.
-- The extension makes a best-effort attempt to lock the Pi editor group.
+- Pi terminals open in VS Code's shared Terminal view, including when the user moves that view to the Secondary Sidebar.
 - New terminal cwd selection: active file's workspace, first workspace folder, then the user's home directory.
 - Composer references target the active or most recent Pi terminal for the selected file's workspace. If none exists, Pi Code creates one.
 - Terminal output selected inside an owned Pi terminal returns to that terminal. Output from other terminals targets the workspace-matched most recent Pi terminal.

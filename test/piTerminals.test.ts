@@ -10,14 +10,12 @@ const mock = vi.hoisted(() => ({
   }>,
   activeTerminal: undefined as unknown,
   options: [] as Record<string, unknown>[],
-  groups: [] as Array<{ viewColumn: number }>,
   closed: [] as Array<(terminal: unknown) => void>,
   activated: [] as Array<(terminal: unknown) => void>,
   events: [] as string[],
   clipboard: "",
   clipboardWrites: [] as string[],
   terminalSelection: undefined as string | undefined,
-  lockFails: false,
   pasteFails: false,
 }));
 
@@ -32,10 +30,10 @@ vi.mock("vscode", () => {
     static file(path: string): Uri {
       return new Uri(path);
     }
-  }
 
-  class ThemeIcon {
-    constructor(readonly id: string) {}
+    static joinPath(base: Uri, ...paths: string[]): Uri {
+      return new Uri([base.fsPath, ...paths].join("/"));
+    }
   }
 
   function event(listeners: Array<(terminal: unknown) => void>) {
@@ -52,27 +50,12 @@ vi.mock("vscode", () => {
 
   return {
     Uri,
-    ThemeIcon,
-    ViewColumn: {
-      Active: -1,
-      Beside: -2,
-      One: 1,
-      Two: 2,
-      Three: 3,
-      Four: 4,
-      Five: 5,
-      Six: 6,
-      Seven: 7,
-      Eight: 8,
-      Nine: 9,
+    TerminalLocation: {
+      Panel: 1,
+      Editor: 2,
     },
     commands: {
       executeCommand: vi.fn(async (command: string) => {
-        if (command === "workbench.action.lockEditorGroup") {
-          mock.events.push("lock");
-          if (mock.lockFails) throw new Error("lock unavailable");
-          return;
-        }
         if (command === "workbench.action.terminal.copySelection") {
           mock.events.push("copy");
           if (mock.terminalSelection !== undefined) mock.clipboard = mock.terminalSelection;
@@ -97,11 +80,6 @@ vi.mock("vscode", () => {
       terminals: mock.terminals,
       get activeTerminal() {
         return mock.activeTerminal;
-      },
-      tabGroups: {
-        get all() {
-          return mock.groups;
-        },
       },
       onDidCloseTerminal: event(mock.closed),
       onDidChangeActiveTerminal: event(mock.activated),
@@ -131,19 +109,19 @@ vi.mock("vscode", () => {
 import * as vscode from "vscode";
 import { PiTerminals } from "../src/piTerminals.js";
 
+const extensionUri = vscode.Uri.file("/extension");
+
 beforeEach(() => {
   vi.clearAllMocks();
   mock.terminals.length = 0;
   mock.activeTerminal = undefined;
   mock.options.length = 0;
-  mock.groups.length = 0;
   mock.closed.length = 0;
   mock.activated.length = 0;
   mock.events.length = 0;
   mock.clipboard = "";
   mock.clipboardWrites.length = 0;
   mock.terminalSelection = undefined;
-  mock.lockFails = false;
   mock.pasteFails = false;
 });
 
@@ -153,7 +131,7 @@ describe("PiTerminals", () => {
     const executable = new Promise<string>((resolve) => {
       resolveExecutable = resolve;
     });
-    const terminals = new PiTerminals(() => executable);
+    const terminals = new PiTerminals(extensionUri, () => executable);
 
     const first = terminals.open(vscode.Uri.file("/workspace/one"));
     const second = terminals.open(vscode.Uri.file("/workspace/two"));
@@ -166,7 +144,7 @@ describe("PiTerminals", () => {
   });
 
   it("Open prefers the active owned terminal, then the global MRU terminal", async () => {
-    const terminals = new PiTerminals(async () => "/usr/bin/pi");
+    const terminals = new PiTerminals(extensionUri, async () => "/usr/bin/pi");
     const first = await terminals.open(vscode.Uri.file("/workspace/one"));
     const second = await terminals.newSession(vscode.Uri.file("/workspace/two"));
     expect(first).toBeDefined();
@@ -180,23 +158,26 @@ describe("PiTerminals", () => {
     terminals.dispose();
   });
 
-  it("creates the first terminal at the right and explicitly reuses its locked group", async () => {
-    mock.groups.push({ viewColumn: 1 }, { viewColumn: 3 });
-    const terminals = new PiTerminals(async () => "/usr/bin/pi");
+  it("creates sessions in VS Code's shared Terminal view", async () => {
+    const terminals = new PiTerminals(extensionUri, async () => "/usr/bin/pi");
 
     await terminals.newSession(vscode.Uri.file("/workspace/one"));
     await terminals.newSession(vscode.Uri.file("/workspace/two"));
 
     expect(mock.options.map((options) => options.location)).toEqual([
-      { viewColumn: 4 },
-      { viewColumn: 4 },
+      vscode.TerminalLocation.Panel,
+      vscode.TerminalLocation.Panel,
     ]);
+    expect(mock.options[0]?.iconPath).toEqual({
+      light: vscode.Uri.file("/extension/assets/logo-light.svg"),
+      dark: vscode.Uri.file("/extension/assets/logo.svg"),
+    });
     expect(mock.options.every((options) => options.env === undefined)).toBe(true);
     terminals.dispose();
   });
 
   it("targets the active or MRU terminal belonging to the reference workspace", async () => {
-    const terminals = new PiTerminals(async () => "/usr/bin/pi");
+    const terminals = new PiTerminals(extensionUri, async () => "/usr/bin/pi");
     await terminals.newSession(vscode.Uri.file("/workspace/one"));
     await terminals.newSession(vscode.Uri.file("/workspace/two"));
 
@@ -209,7 +190,7 @@ describe("PiTerminals", () => {
   });
 
   it("creates a matching terminal when no terminal belongs to the reference workspace", async () => {
-    const terminals = new PiTerminals(async () => "/usr/bin/pi");
+    const terminals = new PiTerminals(extensionUri, async () => "/usr/bin/pi");
     await terminals.newSession(vscode.Uri.file("/workspace/one"));
 
     await terminals.appendToComposer("src/app.ts:4", vscode.Uri.file("/workspace/two"));
@@ -221,7 +202,7 @@ describe("PiTerminals", () => {
   });
 
   it("pastes selected output into its owned source terminal and restores the clipboard", async () => {
-    const terminals = new PiTerminals(async () => "/usr/bin/pi");
+    const terminals = new PiTerminals(extensionUri, async () => "/usr/bin/pi");
     const source = await terminals.newSession(vscode.Uri.file("/workspace"));
     if (!source) throw new Error("terminal was not created");
     mock.clipboard = "original clipboard";
@@ -243,7 +224,7 @@ describe("PiTerminals", () => {
   });
 
   it("targets the workspace-matched Pi terminal when output comes from another terminal", async () => {
-    const terminals = new PiTerminals(async () => "/usr/bin/pi");
+    const terminals = new PiTerminals(extensionUri, async () => "/usr/bin/pi");
     const target = await terminals.newSession(vscode.Uri.file("/workspace"));
     if (!target) throw new Error("terminal was not created");
     const source = {
@@ -267,7 +248,7 @@ describe("PiTerminals", () => {
   });
 
   it("rejects a missing terminal selection without pasting stale clipboard text", async () => {
-    const terminals = new PiTerminals(async () => "/usr/bin/pi");
+    const terminals = new PiTerminals(extensionUri, async () => "/usr/bin/pi");
     const source = await terminals.newSession(vscode.Uri.file("/workspace"));
     if (!source) throw new Error("terminal was not created");
     mock.clipboard = "stale clipboard";
@@ -284,7 +265,7 @@ describe("PiTerminals", () => {
   });
 
   it("restores the clipboard when terminal paste fails", async () => {
-    const terminals = new PiTerminals(async () => "/usr/bin/pi");
+    const terminals = new PiTerminals(extensionUri, async () => "/usr/bin/pi");
     const source = await terminals.newSession(vscode.Uri.file("/workspace"));
     if (!source) throw new Error("terminal was not created");
     mock.clipboard = "original clipboard";
@@ -299,7 +280,7 @@ describe("PiTerminals", () => {
   });
 
   it("does not reuse an exited active terminal", async () => {
-    const terminals = new PiTerminals(async () => "/usr/bin/pi");
+    const terminals = new PiTerminals(extensionUri, async () => "/usr/bin/pi");
     await terminals.open(vscode.Uri.file("/workspace/one"));
     const exited = mock.terminals[0];
     if (!exited) throw new Error("terminal was not created");
@@ -310,15 +291,6 @@ describe("PiTerminals", () => {
 
     expect(replacement).not.toBe(exited);
     expect(mock.options).toHaveLength(2);
-    terminals.dispose();
-  });
-
-  it("does not fail terminal creation when editor-group locking fails", async () => {
-    mock.lockFails = true;
-    const terminals = new PiTerminals(async () => "/usr/bin/pi");
-
-    await expect(terminals.newSession(vscode.Uri.file("/workspace"))).resolves.toBeDefined();
-    expect(mock.options).toHaveLength(1);
     terminals.dispose();
   });
 });
