@@ -3,13 +3,38 @@
   "displayName": "Pi Code",
   "version": "0.1.0",
   "description": "Run Pi's native terminal UI inside VS Code.",
-  "publisher": "local",
+  "publisher": "jjmsft",
+  "author": {
+    "name": "Juan Linares",
+    "url": "https://github.com/jjlinares"
+  },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jjlinares/pi-code.git"
+  },
+  "homepage": "https://github.com/jjlinares/pi-code#readme",
+  "bugs": {
+    "url": "https://github.com/jjlinares/pi-code/issues"
+  },
   "type": "module",
   "main": "./dist/extension.cjs",
+  "icon": "assets/icon.png",
+  "galleryBanner": {
+    "color": "#10151a",
+    "theme": "dark"
+  },
+  "pricing": "Free",
   "categories": [
     "AI",
     "Other"
+  ],
+  "keywords": [
+    "pi",
+    "coding agent",
+    "ai",
+    "terminal",
+    "tui"
   ],
   "engines": {
     "vscode": "^1.130.0"
@@ -22,7 +47,9 @@
     "lint": "biome check .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "package": "pnpm check && vsce package --no-dependencies --allow-missing-repository"
+    "vscode:prepublish": "pnpm check",
+    "package": "vsce package --no-dependencies",
+    "publish:marketplace": "vsce publish --no-dependencies"
   },
   "contributes": {
     "commands": [

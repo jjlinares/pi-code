@@ -3,6 +3,12 @@ import { describe, expect, it } from "vitest";
 
 const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
   activationEvents?: string[];
+  publisher: string;
+  icon: string;
+  repository: { type: string; url: string };
+  homepage: string;
+  bugs: { url: string };
+  scripts: Record<string, string>;
   engines: { vscode: string };
   contributes: {
     commands: Array<{ command: string; title: string }>;
@@ -17,6 +23,18 @@ const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.
 };
 
 describe("extension manifest", () => {
+  it("declares publishable Marketplace metadata", () => {
+    expect(manifest.publisher).toBe("jjmsft");
+    expect(manifest.icon).toBe("assets/icon.png");
+    expect(manifest.repository).toEqual({
+      type: "git",
+      url: "https://github.com/jjlinares/pi-code.git",
+    });
+    expect(manifest.homepage).toBe("https://github.com/jjlinares/pi-code#readme");
+    expect(manifest.bugs.url).toBe("https://github.com/jjlinares/pi-code/issues");
+    expect(manifest.scripts["vscode:prepublish"]).toBe("pnpm check");
+  });
+
   it("contributes exactly the agreed commands", () => {
     expect(manifest.contributes.commands).toEqual([
       { command: "pi-code.open", title: "Pi Code: Open", icon: "$(terminal)" },

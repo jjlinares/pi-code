@@ -8,4 +8,5 @@ biome.json
 tsconfig.json
 pnpm-lock.yaml
 node_modules/**
+assets/*.svg
 *.vsix

@@ -2,6 +2,16 @@
 
 Minimal Linux-only VS Code integration for [Pi](https://pi.dev/). Pi Code runs Pi's native terminal UI in VS Code's integrated Terminal view. It has no webviews, status item, chat participant, IDE bridge, package manager, or hidden agent process.
 
+Pi Code is an independent community integration and is not affiliated with or endorsed by the Pi project.
+
+## Installation
+
+Install from the VS Code Marketplace:
+
+```bash
+code --install-extension jjmsft.pi-code
+```
+
 ## Requirements
 
 - Linux
