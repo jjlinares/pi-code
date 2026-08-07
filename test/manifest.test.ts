@@ -10,6 +10,7 @@ const manifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.
   bugs: { url: string };
   scripts: Record<string, string>;
   engines: { vscode: string };
+  extensionPack: string[];
   contributes: {
     commands: Array<{ command: string; title: string }>;
     configuration: { properties: Record<string, { scope: string }> };
@@ -61,6 +62,10 @@ describe("extension manifest", () => {
   it("targets VS Code 1.130 without startup activation", () => {
     expect(manifest.engines.vscode).toBe("^1.130.0");
     expect(manifest.activationEvents).toBeUndefined();
+  });
+
+  it("installs the standalone clipboard bridge", () => {
+    expect(manifest.extensionPack).toEqual(["jjmsft.pi-clipboard-bridge"]);
   });
 
   it("uses a machine-scoped Pi path setting", () => {

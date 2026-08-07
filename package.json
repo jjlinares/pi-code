@@ -39,17 +39,24 @@
   "engines": {
     "vscode": "^1.130.0"
   },
+  "extensionPack": [
+    "jjmsft.pi-clipboard-bridge"
+  ],
   "scripts": {
     "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.cjs --sourcemap",
     "dev": "pnpm build --watch",
-    "check": "biome check . && pnpm typecheck && pnpm test && pnpm build",
+    "check": "biome check . && pnpm typecheck && pnpm test && pnpm build && pnpm --dir extensions/pi-clipboard-bridge check",
     "format": "biome check --write .",
     "lint": "biome check .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "vscode:prepublish": "pnpm check",
     "package": "vsce package --no-dependencies",
-    "publish:marketplace": "vsce publish --no-dependencies"
+    "package:clipboard": "pnpm --dir extensions/pi-clipboard-bridge package",
+    "package:all": "pnpm package && pnpm package:clipboard",
+    "publish:marketplace": "vsce publish --no-dependencies",
+    "publish:clipboard": "pnpm --dir extensions/pi-clipboard-bridge publish:marketplace",
+    "publish:all": "pnpm publish:clipboard && pnpm publish:marketplace"
   },
   "contributes": {
     "commands": [
