@@ -1,0 +1,91 @@
+{
+  "name": "pi-clipboard-bridge",
+  "displayName": "Pi Clipboard Bridge",
+  "version": "0.1.0",
+  "description": "Paste host clipboard images into Pi running in a VS Code devcontainer terminal.",
+  "publisher": "jjmsft",
+  "author": {
+    "name": "Juan Linares",
+    "url": "https://github.com/jjlinares"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jjlinares/pi-code.git",
+    "directory": "extensions/pi-clipboard-bridge"
+  },
+  "homepage": "https://github.com/jjlinares/pi-code#pi-clipboard-bridge",
+  "bugs": {
+    "url": "https://github.com/jjlinares/pi-code/issues"
+  },
+  "type": "module",
+  "main": "./dist/extension.cjs",
+  "icon": "assets/icon.png",
+  "galleryBanner": {
+    "color": "#10151a",
+    "theme": "dark"
+  },
+  "pricing": "Free",
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "keywords": [
+    "pi",
+    "clipboard",
+    "image",
+    "devcontainer",
+    "terminal"
+  ],
+  "engines": {
+    "vscode": "^1.130.0"
+  },
+  "extensionKind": [
+    "ui"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.cjs --sourcemap",
+    "dev": "pnpm build --watch",
+    "check": "biome check . && pnpm typecheck && pnpm test && pnpm build",
+    "format": "biome check --write .",
+    "lint": "biome check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "vscode:prepublish": "pnpm check",
+    "package": "vsce package --no-dependencies",
+    "publish:marketplace": "vsce publish --no-dependencies"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "pi-clipboard-bridge.paste",
+        "title": "Pi Clipboard: Paste"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "pi-clipboard-bridge.paste",
+        "key": "ctrl+v",
+        "when": "terminalFocus && isLinux && remoteName == dev-container"
+      }
+    ],
+    "configurationDefaults": {
+      "terminal.integrated.commandsToSkipShell": [
+        "pi-clipboard-bridge.paste"
+      ]
+    }
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.6",
+    "@types/node": "24.13.3",
+    "@types/vscode": "1.125.0",
+    "@vscode/vsce": "3.9.2",
+    "esbuild": "0.25.12",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  },
+  "packageManager": "pnpm@10.27.0"
+}

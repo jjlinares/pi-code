@@ -30,6 +30,30 @@ importers:
         specifier: 3.2.7
         version: 3.2.7(@types/node@24.13.3)
 
+  extensions/pi-clipboard-bridge:
+    devDependencies:
+      '@biomejs/biome':
+        specifier: 2.5.6
+        version: 2.5.6
+      '@types/node':
+        specifier: 24.13.3
+        version: 24.13.3
+      '@types/vscode':
+        specifier: 1.125.0
+        version: 1.125.0
+      '@vscode/vsce':
+        specifier: 3.9.2
+        version: 3.9.2
+      esbuild:
+        specifier: 0.25.12
+        version: 0.25.12
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 3.2.7
+        version: 3.2.7(@types/node@24.13.3)
+
 packages:
 
   '@azu/format-text@1.0.2':

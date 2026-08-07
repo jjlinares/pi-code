@@ -17,6 +17,7 @@ code --install-extension jjmsft.pi-code-tui
 - Linux
 - VS Code 1.130 or newer
 - `pi` available in VS Code's inherited `PATH`, or an absolute executable configured in `pi-code.path`
+- For devcontainer image paste: local `wl-paste` from `wl-clipboard`, or `xclip`
 
 Install Pi separately:
 
@@ -35,6 +36,14 @@ npm install --global --ignore-scripts @earendil-works/pi-coding-agent
 | `Pi Code: Add Terminal Selection to Composer` | Terminal context menu | Paste selected terminal output as `<quoted_context>` on a new composer line without submitting it. |
 
 Editor and Explorer references require file-backed resources inside a workspace folder. Explorer folders are rejected. Pi Code never copies selected source text or saves documents automatically. Terminal selections temporarily pass through the system clipboard because VS Code exposes no terminal-selection API; the prior clipboard text is restored afterward.
+
+## Pi Clipboard Bridge
+
+Pi Code TUI's extension pack includes the standalone `jjmsft.pi-clipboard-bridge` extension. In a
+devcontainer terminal, `Ctrl+V` copies a host clipboard image to
+`/tmp/pi-clipboard-<uuid>.<ext>` inside the container and inserts that path without submitting it.
+Text clipboard contents use VS Code's normal terminal paste. The bridge neither requires Pi Code
+TUI nor inspects the terminal process, so it also works when Pi is launched manually.
 
 ## Terminal behavior
 
@@ -60,7 +69,7 @@ Editor and Explorer references require file-backed resources inside a workspace 
 ```bash
 pnpm install
 pnpm check
-pnpm package
+pnpm package:all
 ```
 
 Press `F5` in VS Code to launch an Extension Development Host.

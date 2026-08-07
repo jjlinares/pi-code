@@ -1,13 +1,7 @@
-.github/**
-.vscode/**
 src/**
 test/**
-.gitignore
-AGENTS.md
 biome.json
 tsconfig.json
 pnpm-lock.yaml
-pnpm-workspace.yaml
 node_modules/**
-extensions/**
 *.vsix
