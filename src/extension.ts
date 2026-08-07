@@ -6,7 +6,7 @@ import { formatFileReference, formatSelectionReference } from "./selectionRefere
 import { chooseWorkingDirectory, workspaceRelativePath } from "./workspace.js";
 
 export function activate(context: vscode.ExtensionContext): void {
-  const terminals = new PiTerminals(resolveExecutable);
+  const terminals = new PiTerminals(context.extensionUri, resolveExecutable);
 
   context.subscriptions.push(
     terminals,

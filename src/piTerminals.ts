@@ -15,11 +15,16 @@ export type TerminalSelectionResult = "inserted" | "noSelection" | "unavailable"
 export class PiTerminals implements vscode.Disposable {
   readonly #terminals = new Map<vscode.Terminal, TerminalRecord>();
   readonly #disposables: vscode.Disposable[];
+  readonly #iconPath: { light: vscode.Uri; dark: vscode.Uri };
   readonly #resolveExecutable: () => Promise<string | undefined>;
   #creationQueue: Promise<void> = Promise.resolve();
   #clock = 0;
 
-  constructor(resolveExecutable: () => Promise<string | undefined>) {
+  constructor(extensionUri: vscode.Uri, resolveExecutable: () => Promise<string | undefined>) {
+    this.#iconPath = {
+      light: vscode.Uri.joinPath(extensionUri, "assets", "logo-light.svg"),
+      dark: vscode.Uri.joinPath(extensionUri, "assets", "logo.svg"),
+    };
     this.#resolveExecutable = resolveExecutable;
     this.#disposables = [
       vscode.window.onDidCloseTerminal((terminal) => {
@@ -114,7 +119,7 @@ export class PiTerminals implements vscode.Disposable {
       name: TERMINAL_NAME,
       shellPath: executable,
       cwd,
-      iconPath: new vscode.ThemeIcon("terminal"),
+      iconPath: this.#iconPath,
       location: vscode.TerminalLocation.Panel,
       isTransient: true,
     });
