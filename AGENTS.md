@@ -5,8 +5,8 @@ Linux-only VS Code extension that runs Pi's native TUI directly in VS Code's int
 ## Invariants
 
 - No webviews, startup activation, status bar, chat participant, localhost server, RPC client, or bundled Pi extension.
-- Pi is the terminal process. Do not wrap it in a shell or pseudoterminal.
-- Launch Pi with no arguments and no injected environment variables.
+- Launch the resolved Pi executable directly, without an extension-owned shell or pseudoterminal. An administrator-provided executable may be an `exec` launcher.
+- Pass no arguments or extension-injected environment variables.
 - All owned Pi terminals open in VS Code's shared Terminal view; VS Code controls that view's placement.
 - `Open` targets the active owned terminal, then global MRU, then creates one.
 - Composer references target the active/MRU terminal whose cwd is the file's workspace root.

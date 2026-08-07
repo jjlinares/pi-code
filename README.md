@@ -38,7 +38,7 @@ Editor and Explorer references require file-backed resources inside a workspace 
 
 ## Terminal behavior
 
-- Pi runs directly as the terminal process with no arguments or injected environment variables.
+- Pi Code launches the resolved executable directly, without an extension-owned shell, arguments, or environment overrides. An administrator-provided executable may be an `exec` launcher.
 - Pi terminals open in VS Code's shared Terminal view, including when the user moves that view to the Secondary Sidebar.
 - New terminal cwd selection: active file's workspace, first workspace folder, then the user's home directory.
 - Composer references target the active or most recent Pi terminal for the selected file's workspace. If none exists, Pi Code creates one.
