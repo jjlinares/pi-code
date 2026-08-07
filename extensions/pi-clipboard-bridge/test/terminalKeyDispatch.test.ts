@@ -1,21 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { addCommandToSkipShell } from "../src/terminalKeyDispatch.js";
+import { commandSkipShellState } from "../src/terminalKeyDispatch.js";
 
 const COMMAND = "pi-clipboard-bridge.paste";
 
-describe("addCommandToSkipShell", () => {
-  it("appends the bridge command without discarding existing commands", () => {
-    expect(addCommandToSkipShell(["pi-code.newSession"], COMMAND)).toEqual([
-      "pi-code.newSession",
-      COMMAND,
-    ]);
+describe("commandSkipShellState", () => {
+  it("reports enabled, disabled, and missing commands", () => {
+    expect(commandSkipShellState([COMMAND], COMMAND)).toBe("enabled");
+    expect(commandSkipShellState([`-${COMMAND}`], COMMAND)).toBe("disabled");
+    expect(commandSkipShellState(["other.command"], COMMAND)).toBe("missing");
   });
 
-  it("does not duplicate the command", () => {
-    expect(addCommandToSkipShell([COMMAND], COMMAND)).toBeUndefined();
-  });
-
-  it("respects an explicit opt-out", () => {
-    expect(addCommandToSkipShell([`-${COMMAND}`], COMMAND)).toBeUndefined();
+  it("uses the last matching entry like VS Code", () => {
+    expect(commandSkipShellState([`-${COMMAND}`, COMMAND], COMMAND)).toBe("enabled");
+    expect(commandSkipShellState([COMMAND, `-${COMMAND}`], COMMAND)).toBe("disabled");
   });
 });

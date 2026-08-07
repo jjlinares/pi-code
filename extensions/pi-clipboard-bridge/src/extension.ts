@@ -3,41 +3,70 @@ import * as vscode from "vscode";
 import { readClipboardImage } from "./clipboardImage.js";
 import { runCommand } from "./commandRunner.js";
 import { findRemoteTempLocation } from "./remoteTarget.js";
-import { addCommandToSkipShell } from "./terminalKeyDispatch.js";
+import { commandSkipShellState } from "./terminalKeyDispatch.js";
 
 const PASTE_COMMAND = "pi-clipboard-bridge.paste";
 const TERMINAL_PASTE_COMMAND = "workbench.action.terminal.paste";
 const COMMANDS_TO_SKIP_SHELL_SETTING = "commandsToSkipShell";
+const COMMANDS_TO_SKIP_SHELL_SECTION = `terminal.integrated.${COMMANDS_TO_SKIP_SHELL_SETTING}`;
+const OPEN_SETTINGS_ACTION = "Open Settings";
 let helperWarningShown = false;
 
 export function activate(context: vscode.ExtensionContext): void {
+  let overrideWarningShown = false;
+  let checkQueue = Promise.resolve();
+  const scheduleKeyDispatchCheck = (): void => {
+    checkQueue = checkQueue
+      .then(async () => {
+        const conflict = hasKeyDispatchConflict();
+        if (!conflict) {
+          overrideWarningShown = false;
+          return;
+        }
+        if (overrideWarningShown) return;
+
+        overrideWarningShown = true;
+        await warnAboutKeyDispatchOverride();
+      })
+      .catch((error: unknown) => {
+        void vscode.window.showWarningMessage(
+          `Pi Clipboard Bridge could not configure terminal key handling: ${toErrorMessage(error)}`,
+        );
+      });
+  };
+
   context.subscriptions.push(
     vscode.commands.registerCommand(PASTE_COMMAND, async () => {
       await pasteClipboardIntoTerminal();
     }),
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration(COMMANDS_TO_SKIP_SHELL_SECTION)) {
+        scheduleKeyDispatchCheck();
+      }
+    }),
   );
-  void ensurePasteCommandSkipsShell().catch((error: unknown) => {
-    void vscode.window.showWarningMessage(
-      `Pi Clipboard Bridge could not configure terminal key handling: ${toErrorMessage(error)}`,
-    );
-  });
+  scheduleKeyDispatchCheck();
 }
 
-async function ensurePasteCommandSkipsShell(): Promise<void> {
+function hasKeyDispatchConflict(): boolean {
+  if (process.platform !== "linux" || vscode.env.remoteName !== "dev-container") return false;
+
   const configuration = vscode.workspace.getConfiguration("terminal.integrated");
   const configured = configuration.get<string[]>(COMMANDS_TO_SKIP_SHELL_SETTING, []);
-  if (!addCommandToSkipShell(configured, PASTE_COMMAND)) return;
+  return commandSkipShellState(configured, PASTE_COMMAND) === "missing";
+}
 
-  const inspected = configuration.inspect<string[]>(COMMANDS_TO_SKIP_SHELL_SETTING);
-  const globalCommands = inspected?.globalValue ?? [];
-  const updatedGlobalCommands = addCommandToSkipShell(globalCommands, PASTE_COMMAND);
-  if (!updatedGlobalCommands) return;
-
-  await configuration.update(
-    COMMANDS_TO_SKIP_SHELL_SETTING,
-    updatedGlobalCommands,
-    vscode.ConfigurationTarget.Global,
+async function warnAboutKeyDispatchOverride(): Promise<void> {
+  const action = await vscode.window.showWarningMessage(
+    "A remote or workspace terminal setting prevents Pi Clipboard Bridge from handling Ctrl+V. Add pi-clipboard-bridge.paste to terminal.integrated.commandsToSkipShell.",
+    OPEN_SETTINGS_ACTION,
   );
+  if (action === OPEN_SETTINGS_ACTION) {
+    await vscode.commands.executeCommand(
+      "workbench.action.openSettings",
+      COMMANDS_TO_SKIP_SHELL_SECTION,
+    );
+  }
 }
 
 async function pasteClipboardIntoTerminal(): Promise<void> {

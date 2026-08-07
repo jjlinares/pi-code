@@ -15,8 +15,10 @@ If the clipboard does not contain a supported image, VS Code performs its normal
 paste. The extension does not inspect or require the terminal's foreground process.
 
 VS Code sends terminal shortcuts to the shell unless their command is listed in
-`terminal.integrated.commandsToSkipShell`. The bridge preserves that user-level list and adds
-`pi-clipboard-bridge.paste` when needed. An explicit `-pi-clipboard-bridge.paste` entry opts out.
+`terminal.integrated.commandsToSkipShell`. The bridge contributes
+`pi-clipboard-bridge.paste` by default but never rewrites user settings. An explicit
+`-pi-clipboard-bridge.paste` entry opts out. The bridge warns when an effective user, remote,
+workspace, or workspace-folder setting omits the command.
 
 ## Requirements
 
