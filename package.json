@@ -1,6 +1,6 @@
 {
-  "name": "pi-code",
-  "displayName": "Pi Code",
+  "name": "pi-code-tui",
+  "displayName": "Pi Code TUI",
   "version": "0.1.0",
   "description": "Run Pi's native terminal UI inside VS Code.",
   "publisher": "jjmsft",
