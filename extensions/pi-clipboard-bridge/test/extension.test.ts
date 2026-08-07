@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ExtensionContext } from "vscode";
 
 const PASTE_COMMAND = "pi-clipboard-bridge.paste";
+const COMMANDS_TO_SKIP_SHELL_SECTION = "terminal.integrated.commandsToSkipShell";
+const SEND_KEYBINDINGS_TO_SHELL_SECTION = "terminal.integrated.sendKeybindingsToShell";
 const OPEN_SETTINGS_ACTION = "Open Settings";
 
 const mock = vi.hoisted(() => {
@@ -10,9 +12,12 @@ const mock = vi.hoisted(() => {
       | ((event: { affectsConfiguration: (section: string) => boolean }) => void)
       | undefined,
     effectiveCommands: [] as string[],
+    sendKeybindingsToShell: false,
   };
-  const fireConfigurationChange = (): void => {
-    state.configurationListener?.({ affectsConfiguration: () => true });
+  const fireConfigurationChange = (affectedSection: string): void => {
+    state.configurationListener?.({
+      affectsConfiguration: (section) => section === affectedSection,
+    });
   };
   const update = vi.fn(async () => undefined);
 
@@ -40,7 +45,11 @@ vi.mock("vscode", () => ({
   },
   workspace: {
     getConfiguration: vi.fn(() => ({
-      get: vi.fn(() => mock.state.effectiveCommands),
+      get: vi.fn((setting: string) =>
+        setting === "sendKeybindingsToShell"
+          ? mock.state.sendKeybindingsToShell
+          : mock.state.effectiveCommands,
+      ),
       update: mock.update,
     })),
     onDidChangeConfiguration: vi.fn(
@@ -58,6 +67,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mock.state.configurationListener = undefined;
   mock.state.effectiveCommands = [];
+  mock.state.sendKeybindingsToShell = false;
   mock.showWarningMessage.mockResolvedValue(undefined);
 });
 
@@ -74,12 +84,12 @@ describe("terminal key dispatch setup", () => {
 
     await vi.waitFor(() => {
       expect(mock.showWarningMessage).toHaveBeenCalledWith(
-        expect.stringContaining("remote or workspace terminal setting"),
+        expect.stringContaining("A terminal setting prevents"),
         OPEN_SETTINGS_ACTION,
       );
       expect(mock.executeCommand).toHaveBeenCalledWith(
         "workbench.action.openSettings",
-        "terminal.integrated.commandsToSkipShell",
+        COMMANDS_TO_SKIP_SHELL_SECTION,
       );
     });
     expect(mock.update).not.toHaveBeenCalled();
@@ -87,6 +97,7 @@ describe("terminal key dispatch setup", () => {
 
   it("does not warn for an explicit opt-out", async () => {
     mock.state.effectiveCommands = [`-${PASTE_COMMAND}`];
+    mock.state.sendKeybindingsToShell = true;
 
     activateExtension();
     await new Promise((resolve) => setImmediate(resolve));
@@ -111,11 +122,32 @@ describe("terminal key dispatch setup", () => {
     await new Promise((resolve) => setImmediate(resolve));
 
     mock.state.effectiveCommands = ["remote.command"];
-    mock.fireConfigurationChange();
+    mock.fireConfigurationChange(COMMANDS_TO_SKIP_SHELL_SECTION);
     await vi.waitFor(() => expect(mock.showWarningMessage).toHaveBeenCalledTimes(1));
 
-    mock.fireConfigurationChange();
+    mock.fireConfigurationChange(COMMANDS_TO_SKIP_SHELL_SECTION);
     await new Promise((resolve) => setImmediate(resolve));
     expect(mock.showWarningMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it("detects sendKeybindingsToShell changes and opens that setting", async () => {
+    mock.state.effectiveCommands = [PASTE_COMMAND];
+    mock.showWarningMessage.mockResolvedValue(OPEN_SETTINGS_ACTION);
+    activateExtension();
+    await new Promise((resolve) => setImmediate(resolve));
+
+    mock.state.sendKeybindingsToShell = true;
+    mock.fireConfigurationChange(SEND_KEYBINDINGS_TO_SHELL_SECTION);
+
+    await vi.waitFor(() => {
+      expect(mock.showWarningMessage).toHaveBeenCalledWith(
+        expect.stringContaining("Turn off terminal.integrated.sendKeybindingsToShell"),
+        OPEN_SETTINGS_ACTION,
+      );
+      expect(mock.executeCommand).toHaveBeenCalledWith(
+        "workbench.action.openSettings",
+        SEND_KEYBINDINGS_TO_SHELL_SECTION,
+      );
+    });
   });
 });

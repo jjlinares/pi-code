@@ -17,8 +17,9 @@ paste. The extension does not inspect or require the terminal's foreground proce
 VS Code sends terminal shortcuts to the shell unless their command is listed in
 `terminal.integrated.commandsToSkipShell`. The bridge contributes
 `pi-clipboard-bridge.paste` by default but never rewrites user settings. An explicit
-`-pi-clipboard-bridge.paste` entry opts out. The bridge warns when an effective user, remote,
-workspace, or workspace-folder setting omits the command.
+`-pi-clipboard-bridge.paste` entry opts out and suppresses configuration warnings. Otherwise, the
+bridge warns when an effective setting omits the command or enables
+`terminal.integrated.sendKeybindingsToShell`, which overrides the command list.
 
 ## Requirements
 
